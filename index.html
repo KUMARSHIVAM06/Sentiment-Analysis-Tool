@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis Dashboard</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            --glass-bg: rgba(30, 41, 59, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.03);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            
+            /* Sentiment Colors */
+            --pos-color: #10b981;
+            --pos-gradient: linear-gradient(135deg, #34d399, #059669);
+            --pos-glow: rgba(16, 185, 129, 0.35);
+            
+            --neg-color: #ef4444;
+            --neg-gradient: linear-gradient(135deg, #f87171, #dc2626);
+            --neg-glow: rgba(239, 68, 68, 0.35);
+            
+            --neu-color: #f59e0b;
+            --neu-gradient: linear-gradient(135deg, #fbbf24, #d97706);
+            --neu-glow: rgba(245, 158, 11, 0.35);
+
+            --accent-color: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #a78bfa, #6d28d9);
+            --accent-glow: rgba(139, 92, 246, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Styles */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-left: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at top left, var(--glass-highlight), transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glass-panel:hover {
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Layout */
+        header {
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            background: var(--accent-gradient);
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .logo-icon svg {
+            width: 22px;
+            height: 22px;
+            fill: white;
+        }
+
+        .logo-text h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, #ffffff, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        main {
+            flex: 1;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .dashboard-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Tabs Navigation */
+        .tabs-nav {
+            display: flex;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 0.4rem;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            gap: 0.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn.active {
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        /* Card Content Styles */
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-title svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--accent-color);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Model Configuration Styles */
+        .model-meta-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .meta-item {
+            background: rgba(15, 23, 42, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 0.8rem 1rem;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meta-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .meta-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .form-select {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 0.8rem;
+            border-radius: 10px;
+            outline: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-select:focus {
+            border-color: var(--accent-color);
+        }
+
+        .btn {
+            width: 100%;
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            padding: 0.9rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px var(--accent-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: var(--glass-bg);
+            color: var(--text-secondary);
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Metrics grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--glass-border);
+            padding-top: 1.5rem;
+        }
+
+        .metric-card {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-val {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            background: linear-gradient(135deg, #a78bfa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metric-lbl {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-top: 0.2rem;
+        }
+
+        /* Real-Time Analyzer Panel */
+        .analyzer-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .analyzer-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .textarea-wrapper {
+            position: relative;
+            flex: 1;
+            min-height: 240px;
+            display: flex;
+        }
+
+        .text-input {
+            width: 100%;
+            height: 100%;
+            min-height: 240px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            padding: 1.2rem;
+            font-size: 1rem;
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+            transition: all 0.3s ease;
+        }
+
+        .text-input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
+            background: rgba(15, 23, 42, 0.7);
+        }
+
+        .char-counter {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            background: rgba(15, 23, 42, 0.7);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        /* Prediction Output Section */
+        .results-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            justify-content: center;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            height: 100%;
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            fill: rgba(255, 255, 255, 0.15);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .prediction-box {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px var(--badge-glow);
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .result-badge.positive {
+            background: var(--pos-gradient);
+            --badge-glow: var(--pos-glow);
+        }
+
+        .result-badge.negative {
+            background: var(--neg-gradient);
+            --badge-glow: var(--neg-glow);
+        }
+
+        .result-badge.neutral {
+            background: var(--neu-gradient);
+            --badge-glow: var(--neu-glow);
+        }
+
+        .confidence-circle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .conf-number {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+        }
+
+        .conf-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Probabilities bars */
+        .prob-bars-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .prob-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .prob-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .prob-bar-bg {
+            background: rgba(15, 23, 42, 0.6);
+            height: 8px;
+            border-radius: 9999px;
+            width: 100%;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            border-radius: 9999px;
+            width: 0%;
+            transition: width 0.6s cubic-bezier(0.1, 0.8, 0.25, 1);
+        }
+
+        .prob-bar-fill.positive { background: var(--pos-gradient); box-shadow: 0 0 10px var(--pos-glow); }
+        .prob-bar-fill.negative { background: var(--neg-gradient); box-shadow: 0 0 10px var(--neg-glow); }
+        .prob-bar-fill.neutral { background: var(--neu-gradient); box-shadow: 0 0 10px var(--neu-glow); }
+
+        /* Batch Analysis styles */
+        .batch-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .batch-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .batch-summary {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .summary-stat {
+            background: rgba(15, 23, 42, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.2rem;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            position: relative;
+        }
+
+        .summary-stat.accent {
+            border-color: rgba(139, 92, 246, 0.2);
+        }
+
+        .stat-val {
+            font-size: 1.75rem;
+            font-weight: 800;
+        }
+
+        .stat-lbl {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-dot {
+            position: absolute;
+            top: 1.2rem;
+            right: 1.2rem;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .stat-dot.pos { background: var(--pos-color); box-shadow: 0 0 8px var(--pos-color); }
+        .stat-dot.neg { background: var(--neg-color); box-shadow: 0 0 8px var(--neg-color); }
+        .stat-dot.neu { background: var(--neu-color); box-shadow: 0 0 8px var(--neu-color); }
+
+        /* Table Design */
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+
+        .search-input {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            outline: none;
+            font-size: 0.85rem;
+            width: 250px;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-color);
+            width: 280px;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            background: rgba(15, 23, 42, 0.3);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 1rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--glass-border);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge.positive { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge.negative { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge.neutral { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+        /* Notification Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--accent-color);
+        }
+
+        .toast-content h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .toast-content p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Spinner for loading */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner.active {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm0-3c1.93 0 3.5-1.57 3.5-3.5h-7c0 1.93 1.57 3.5 3.5 3.5zm-2.5-6c.83 0 1.5-.67 1.5-1.5S10.33 8 9.5 8 8 8.67 8 9.5 8.67 11 9.5 11zm5 0c.83 0 1.5-.67 1.5-1.5S15.33 8 14.5 8s-1.5.67-1.5 1.5.67 1.5 1.5 1.5z"/>
+                </svg>
+            </div>
+            <div class="logo-text">
+                <h1>SentiMetric</h1>
+                <p>Advanced Sentiment Analysis System</p>
+            </div>
+        </div>
+        <div>
+            <!-- Status Pill -->
+            <div id="statusPill" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 0.4rem 0.8rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; color: #34d399;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981;"></span>
+                Model Active
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Sidebar - Configuration -->
+        <div class="sidebar">
+            <div class="glass-panel">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                        Model Settings
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="model-meta-grid">
+                        <div class="meta-item">
+                            <span class="meta-label">Classifier</span>
+                            <span class="meta-value" id="metaClassifier">-</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Vectorizer</span>
+                            <span class="meta-value" id="metaVectorizer">-</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Vocabulary</span>
+                            <span class="meta-value" id="metaVocab">-</span>
+                        </div>
+                    </div>
+
+                    <form id="retrainForm" onsubmit="handleRetrain(event)">
+                        <div class="form-group">
+                            <label for="classifierSelect">Classifier Algorithm</label>
+                            <select id="classifierSelect" class="form-select">
+                                <option value="logistic_regression">Logistic Regression</option>
+                                <option value="naive_bayes">Naive Bayes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="vectorizerSelect">Feature Extractor</label>
+                            <select id="vectorizerSelect" class="form-select">
+                                <option value="tfidf">TF-IDF Vectorizer</option>
+                                <option value="count">Count Vectorizer</option>
+                            </select>
+                        </div>
+                        <button type="submit" id="trainBtn" class="btn">
+                            <span class="spinner" id="trainSpinner"></span>
+                            <span id="trainBtnText">Retrain Model</span>
+                        </button>
+                    </form>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-val" id="metricAcc">-</div>
+                            <div class="metric-lbl">Accuracy</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-val" id="metricF1M">-</div>
+                            <div class="metric-lbl">F1 Macro</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-val" id="metricF1W">-</div>
+                            <div class="metric-lbl">F1 Weighted</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard View -->
+        <div class="dashboard-content">
+            <!-- Tabs -->
+            <div class="tabs-nav">
+                <button class="tab-btn active" onclick="switchTab('single')">
+                    <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+                    Real-time Analyzer
+                </button>
+                <button class="tab-btn" onclick="switchTab('batch')">
+                    <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
+                    Batch Ingestion
+                </button>
+            </div>
+
+            <!-- TAB 1: Single Prediction -->
+            <div id="singleTab" class="glass-panel" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        Analyze Text Sentiment
+                    </h2>
+                </div>
+                <div class="card-body analyzer-layout" style="flex: 1;">
+                    <div class="input-panel">
+                        <div class="textarea-wrapper">
+                            <textarea id="textInput" class="text-input" placeholder="Type a sentence, review, or comment to analyze its sentiment..." oninput="onTextInput()"></textarea>
+                            <div id="charCount" class="char-counter">0 chars</div>
+                        </div>
+                    </div>
+
+                    <div class="results-panel">
+                        <div id="emptyResult" class="empty-state">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                            <div>
+                                <h3 style="font-size: 1rem; font-weight:600; margin-bottom:0.25rem;">Awaiting Input</h3>
+                                <p style="font-size: 0.85rem; max-width: 250px;">Real-time analysis results will appear here as soon as you start typing.</p>
+                            </div>
+                        </div>
+
+                        <div id="predictionResult" class="prediction-box">
+                            <center>
+                                <div id="sentimentBadge" class="result-badge">
+                                    <span id="sentimentEmoji">🟢</span>
+                                    <span id="sentimentText">Positive</span>
+                                </div>
+                            </center>
+
+                            <div class="confidence-circle-wrap">
+                                <div class="conf-number" id="confidenceVal">0%</div>
+                                <div>
+                                    <div class="conf-label">Confidence</div>
+                                    <div style="font-size:0.75rem; color: var(--text-secondary);" id="confidenceDesc">Strength of model prediction</div>
+                                </div>
+                            </div>
+
+                            <div class="prob-bars-container">
+                                <div class="prob-row">
+                                    <div class="prob-label-row">
+                                        <span>Positive</span>
+                                        <span id="probValPos">0%</span>
+                                    </div>
+                                    <div class="prob-bar-bg">
+                                        <div id="probBarPos" class="prob-bar-fill positive"></div>
+                                    </div>
+                                </div>
+
+                                <div class="prob-row">
+                                    <div class="prob-label-row">
+                                        <span>Neutral</span>
+                                        <span id="probValNeu">0%</span>
+                                    </div>
+                                    <div class="prob-bar-bg">
+                                        <div id="probBarNeu" class="prob-bar-fill neutral"></div>
+                                    </div>
+                                </div>
+
+                                <div class="prob-row">
+                                    <div class="prob-label-row">
+                                        <span>Negative</span>
+                                        <span id="probValNeg">0%</span>
+                                    </div>
+                                    <div class="prob-bar-bg">
+                                        <div id="probBarNeg" class="prob-bar-fill negative"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Batch Prediction -->
+            <div id="batchTab" class="glass-panel" style="flex: 1; display: none; flex-direction: column;">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
+                        Batch Sentiment Ingestion
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 500;">
+                            Paste Multiple Lines (One text per line)
+                        </label>
+                        <textarea id="batchInput" class="text-input" style="height: 120px; min-height: 120px;" placeholder="Awesome product!&#10;It was not that good.&#10;Just standard shipping."></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                        <button onclick="handleBatchPredict()" class="btn" id="batchBtn" style="flex: 1;">
+                            <span class="spinner" id="batchSpinner"></span>
+                            Analyze Batch Texts
+                        </button>
+                        <button onclick="clearBatch()" class="btn" style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--glass-border); box-shadow: none; width: auto;">
+                            Clear
+                        </button>
+                    </div>
+
+                    <div id="batchOutputSection" style="display: none; animation: fadeIn 0.4s ease;">
+                        <div class="batch-grid">
+                            <div class="batch-summary">
+                                <div class="summary-stat accent">
+                                    <span class="stat-val" id="statTotal">0</span>
+                                    <span class="stat-lbl">Total Analyzed</span>
+                                </div>
+                                <div class="summary-stat">
+                                    <span class="stat-dot pos"></span>
+                                    <span class="stat-val" id="statPos">0</span>
+                                    <span class="stat-lbl">Positive</span>
+                                </div>
+                                <div class="summary-stat">
+                                    <span class="stat-dot neu"></span>
+                                    <span class="stat-val" id="statNeu">0</span>
+                                    <span class="stat-lbl">Neutral</span>
+                                </div>
+                                <div class="summary-stat">
+                                    <span class="stat-dot neg"></span>
+                                    <span class="stat-val" id="statNeg">0</span>
+                                    <span class="stat-lbl">Negative</span>
+                                </div>
+                            </div>
+
+                            <!-- HTML Custom Sentiment Ratio chart -->
+                            <div class="summary-stat accent" style="display: flex; flex-direction: column; justify-content: center; gap: 0.5rem;">
+                                <span class="stat-lbl" style="margin-bottom: 0.5rem;">Sentiment Ratio Distribution</span>
+                                <div style="display: flex; height: 28px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05);">
+                                    <div id="ratioBarPos" style="height: 100%; background: var(--pos-gradient); width: 0%; transition: width 0.5s ease;"></div>
+                                    <div id="ratioBarNeu" style="height: 100%; background: var(--neu-gradient); width: 0%; transition: width 0.5s ease;"></div>
+                                    <div id="ratioBarNeg" style="height: 100%; background: var(--neg-gradient); width: 0%; transition: width 0.5s ease;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                    <span style="color: var(--pos-color); font-weight:600;" id="ratioLblPos">Pos: 0%</span>
+                                    <span style="color: var(--neu-color); font-weight:600;" id="ratioLblNeu">Neu: 0%</span>
+                                    <span style="color: var(--neg-color); font-weight:600;" id="ratioLblNeg">Neg: 0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-controls">
+                            <span style="font-size: 0.9rem; font-weight: 600;">Prediction Breakdown</span>
+                            <input type="text" id="tableSearch" class="search-input" placeholder="Filter texts or sentiments..." oninput="filterBatchTable()">
+                        </div>
+
+                        <div class="table-container">
+                            <table id="batchTable">
+                                <thead>
+                                    <tr>
+                                        <th>Text snippet</th>
+                                        <th>Cleaned Text</th>
+                                        <th>Predicted Sentiment</th>
+                                        <th>Confidence</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="batchTableBody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        <div class="toast-content">
+            <h4 id="toastTitle">Success</h4>
+            <p id="toastMessage">Action completed successfully.</p>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let debounceTimer;
+        let batchResults = [];
+
+        // Tab Switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('singleTab').style.display = 'none';
+            document.getElementById('batchTab').style.display = 'none';
+
+            if (tab === 'single') {
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+                document.getElementById('singleTab').style.display = 'flex';
+            } else {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.getElementById('batchTab').style.display = 'flex';
+            }
+        }
+
+        // Load Status
+        async function fetchModelStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                if (data.status === 'loaded') {
+                    document.getElementById('metaClassifier').textContent = formatName(data.classifier);
+                    document.getElementById('metaVectorizer').textContent = formatName(data.vectorizer);
+                    document.getElementById('metaVocab').textContent = data.vocabulary_size + " words";
+
+                    // Sync selector values
+                    document.getElementById('classifierSelect').value = data.classifier;
+                    document.getElementById('vectorizerSelect').value = data.vectorizer;
+                }
+            } catch (err) {
+                console.error("Error loading model status:", err);
+            }
+        }
+
+        function formatName(name) {
+            return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        }
+
+        // Text Counter & Debounce Trigger
+        function onTextInput() {
+            const val = document.getElementById('textInput').value;
+            document.getElementById('charCount').textContent = val.length + " chars";
+
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                analyzeSingleText(val);
+            }, 300);
+        }
+
+        // Analyze Single Text
+        async function analyzeSingleText(text) {
+            if (!text.trim()) {
+                document.getElementById('emptyResult').style.display = 'flex';
+                document.getElementById('predictionResult').style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                if (!response.ok) throw new Error("Prediction API error");
+
+                const result = await response.json();
+
+                // Show/hide boxes
+                document.getElementById('emptyResult').style.display = 'none';
+                document.getElementById('predictionResult').style.display = 'block';
+
+                // Sentiment Badge
+                const badge = document.getElementById('sentimentBadge');
+                badge.className = `result-badge ${result.label}`;
+                
+                const emojiMap = { positive: '🟢', negative: '🔴', neutral: '🟡' };
+                document.getElementById('sentimentEmoji').textContent = emojiMap[result.label] || '⚪';
+                document.getElementById('sentimentText').textContent = result.label;
+
+                // Confidence
+                const confidencePct = Math.round(result.confidence * 100);
+                document.getElementById('confidenceVal').textContent = `${confidencePct}%`;
+
+                // Probabilities Bars
+                const probs = result.probabilities;
+                const posVal = Math.round((probs.positive || 0) * 100);
+                const neuVal = Math.round((probs.neutral || 0) * 100);
+                const negVal = Math.round((probs.negative || 0) * 100);
+
+                document.getElementById('probValPos').textContent = `${posVal}%`;
+                document.getElementById('probValNeu').textContent = `${neuVal}%`;
+                document.getElementById('probValNeg').textContent = `${negVal}%`;
+
+                document.getElementById('probBarPos').style.width = `${posVal}%`;
+                document.getElementById('probBarNeu').style.width = `${neuVal}%`;
+                document.getElementById('probBarNeg').style.width = `${negVal}%`;
+
+            } catch (err) {
+                console.error("Prediction error:", err);
+            }
+        }
+
+        // Batch Prediction
+        async function handleBatchPredict() {
+            const batchVal = document.getElementById('batchInput').value;
+            const lines = batchVal.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+            if (lines.length === 0) {
+                showToast("Invalid Input", "Please enter one or more text lines to analyze.", true);
+                return;
+            }
+
+            // Spinner & State
+            const btn = document.getElementById('batchBtn');
+            const spinner = document.getElementById('batchSpinner');
+            btn.disabled = true;
+            spinner.classList.add('active');
+
+            try {
+                const response = await fetch('/api/predict_batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ texts: lines })
+                });
+
+                if (!response.ok) throw new Error("Batch API Error");
+
+                const data = await response.json();
+                batchResults = data.results;
+
+                // Render Summary stats
+                document.getElementById('statTotal').textContent = batchResults.length;
+                document.getElementById('statPos').textContent = data.summary.positive;
+                document.getElementById('statNeu').textContent = data.summary.neutral;
+                document.getElementById('statNeg').textContent = data.summary.negative;
+
+                // Ratio bars
+                const total = batchResults.length;
+                const posPct = Math.round((data.summary.positive / total) * 100) || 0;
+                const neuPct = Math.round((data.summary.neutral / total) * 100) || 0;
+                const negPct = Math.round((data.summary.negative / total) * 100) || 0;
+
+                document.getElementById('ratioBarPos').style.width = `${posPct}%`;
+                document.getElementById('ratioBarNeu').style.width = `${neuPct}%`;
+                document.getElementById('ratioBarNeg').style.width = `${negPct}%`;
+
+                document.getElementById('ratioLblPos').textContent = `Pos: ${posPct}%`;
+                document.getElementById('ratioLblNeu').textContent = `Neu: ${neuPct}%`;
+                document.getElementById('ratioLblNeg').textContent = `Neg: ${negPct}%`;
+
+                // Render Table rows
+                renderBatchTable(batchResults);
+
+                // Show output
+                document.getElementById('batchOutputSection').style.display = 'block';
+                showToast("Analysis Complete", `Successfully processed ${total} texts.`);
+
+            } catch (err) {
+                console.error("Batch predict failed:", err);
+                showToast("Error", "Could not complete batch sentiment processing.", true);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.remove('active');
+            }
+        }
+
+        function renderBatchTable(results) {
+            const tbody = document.getElementById('batchTableBody');
+            tbody.innerHTML = '';
+
+            results.forEach(res => {
+                const tr = document.createElement('tr');
+                
+                const tdText = document.createElement('td');
+                tdText.textContent = res.text;
+                tdText.title = res.text;
+
+                const tdClean = document.createElement('td');
+                tdClean.textContent = res.cleaned;
+                tdClean.title = res.cleaned;
+
+                const tdLabel = document.createElement('td');
+                const badge = document.createElement('span');
+                badge.className = `badge ${res.label}`;
+                badge.textContent = res.label;
+                tdLabel.appendChild(badge);
+
+                const tdConf = document.createElement('td');
+                tdConf.textContent = res.confidence ? `${Math.round(res.confidence * 100)}%` : '-';
+
+                tr.appendChild(tdText);
+                tr.appendChild(tdClean);
+                tr.appendChild(tdLabel);
+                tr.appendChild(tdConf);
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterBatchTable() {
+            const query = document.getElementById('tableSearch').value.toLowerCase();
+            const filtered = batchResults.filter(res => {
+                return res.text.toLowerCase().includes(query) || 
+                       res.cleaned.toLowerCase().includes(query) || 
+                       res.label.toLowerCase().includes(query);
+            });
+            renderBatchTable(filtered);
+        }
+
+        function clearBatch() {
+            document.getElementById('batchInput').value = '';
+            document.getElementById('batchOutputSection').style.display = 'none';
+            batchResults = [];
+        }
+
+        // Retraining Pipeline Handlers
+        async function handleRetrain(event) {
+            event.preventDefault();
+
+            const classifier = document.getElementById('classifierSelect').value;
+            const vectorizer = document.getElementById('vectorizerSelect').value;
+
+            const btn = document.getElementById('trainBtn');
+            const spinner = document.getElementById('trainSpinner');
+            const btnText = document.getElementById('trainBtnText');
+
+            btn.disabled = true;
+            spinner.classList.add('active');
+            btnText.textContent = "Training...";
+
+            try {
+                const response = await fetch('/api/train', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ classifier, vectorizer })
+                });
+
+                if (!response.ok) throw new Error("Training request failed");
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast("Model Retrained", `Active model is now ${formatName(classifier)} with ${formatName(vectorizer)}.`);
+                    
+                    // Update stats
+                    document.getElementById('metricAcc').textContent = `${(result.metrics.accuracy * 100).toFixed(1)}%`;
+                    document.getElementById('metricF1M').textContent = result.metrics.f1_macro.toFixed(3);
+                    document.getElementById('metricF1W').textContent = result.metrics.f1_weighted.toFixed(3);
+
+                    // Refresh model status display
+                    await fetchModelStatus();
+
+                    // Re-evaluate whatever text is in the real-time analyzer currently
+                    const currentText = document.getElementById('textInput').value;
+                    if (currentText.trim()) {
+                        analyzeSingleText(currentText);
+                    }
+                }
+            } catch (err) {
+                console.error("Retraining error:", err);
+                showToast("Training Failed", "Model pipeline encountered an error during retraining.", true);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.remove('active');
+                btnText.textContent = "Retrain Model";
+            }
+        }
+
+        // Toast notifications
+        function showToast(title, message, isError = false) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            
+            if (isError) {
+                toast.style.borderLeftColor = 'var(--neg-color)';
+                toast.querySelector('svg').style.fill = 'var(--neg-color)';
+            } else {
+                toast.style.borderLeftColor = 'var(--accent-color)';
+                toast.querySelector('svg').style.fill = 'var(--accent-color)';
+            }
+
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        // Page Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchModelStatus();
+        });
+    </script>
+</body>
+</html>
